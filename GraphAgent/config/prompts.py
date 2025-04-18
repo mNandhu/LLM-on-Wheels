@@ -104,7 +104,7 @@ Information from CrewAI Agents:
 Provide a helpful and informative response to the student's question.""",
         ),
         MessagesPlaceholder(variable_name="history"),
-        ("human", "{input}"),
+        ("human", "{user_input}"),
         (
             "system",
             "Information provided CrewAI Agent: {database_agent_responses}\nResponse:",
@@ -112,30 +112,18 @@ Provide a helpful and informative response to the student's question.""",
     ]
 )
 
-crewai_query_prompt = ChatPromptTemplate.from_messages(
+PROMPT_INTENT_DETECTION_WITH_HISTORY = ChatPromptTemplate.from_messages(
     [
+        MessagesPlaceholder(
+            variable_name="history"
+        ),  # History first (will already contain the system message)
         (
             "system",
-            """You are an AI assistant.
-Current Time: {current_time}
-                 
-As part of your three-step process:
-1. You've decided to query the CrewAI agents.
-2. Generate a proper contextual query based on the student's question and conversation history.
-
-Previous CrewAI Responses:
-{database_agent_responses}
-
-Student's Question:
-{input}
-
-Format the query for the CrewAI agents by:
-1. Including relevant context from previous exchanges.
-2. Specifying the type of information needed.
-3. Maintaining the student's original intent.
-4. Focusing on one clear question at a time.
-
-Provide a clear, specific query with necessary context. No additional commentary.""",
+            """
+Classify the intent of the user's query into one of the following categories:
+{intents}.
+The query is: {user_input}
+""",
         ),
     ]
 )

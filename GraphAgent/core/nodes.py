@@ -1,9 +1,20 @@
 from .state import State
-from ..utils.misc import Colors
+from GraphAgent.utils.misc import Colors
+from GraphAgent.llm.service import get_chat_llm
 from . import interfaces
+from GraphAgent.llm.intent_detection import classify_intent
 
 
 class Nodes:
+    def __init__(self):
+        self._chat_llm = None
+
+    @property
+    def chat_llm(self):
+        if self._chat_llm is None:
+            self._chat_llm = get_chat_llm(provider="groq")
+        return self._chat_llm
+
     def user_input_node(self, state: State) -> State:
         """
         Captures user input (text or speech) and updates the state.
@@ -11,7 +22,9 @@ class Nodes:
         Updates "user_input_text" and "current_robot_pose" in the state.
         """
         # Stub: Simulate capturing user speech (or text) and updating pose history.
-        state["user_input_text"] = interfaces.transcribe_audio()
+        state["user_input_text"] = interfaces.transcribe_audio(
+            state.get("user_input_audio")
+        )
         # Update current pose as gathered from robot sensors.
         state["current_robot_pose"] = interfaces.get_current_pose()
         print(
@@ -23,12 +36,21 @@ class Nodes:
     def intent_detection_node(self, state: State) -> State:
         """
         Detects the intent of the user input and updates the state.
+        
+        Uses the classify_intent function to determine user intent from
+        conversation history and current input.
 
         Updates "current_intent" in the state.
         """
-        # Stub: Simulate intent detection
-        # For now, we set a fixed intent. In production, use a classifier.
-        state["current_intent"] = "FIND_OBJECT"  # or "NAVIGATE_TO_COORDS", etc.
+        
+        # Get user input and conversation history
+        user_input = state.get("user_input_text", "")
+        history = state.get("chat_history", [])
+        
+        # Use the classify_intent function to determine the intent
+        intent = classify_intent(user_input, history, self.chat_llm)
+        state["current_intent"] = intent
+        
         print(
             f"{Colors.BLUE}[intent_detection_node] Detected intent: {state.get('current_intent')}{Colors.ENDC}"
         )
