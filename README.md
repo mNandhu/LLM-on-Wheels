@@ -18,6 +18,12 @@ The robot operates in two modes:
 ## LangGraph Flow Diagram
 
 ```mermaid
+%%{init: {"themeVariables": {
+  "primaryTextColor": "#000000",
+  "secondaryTextColor": "#000000",
+  "tertiaryTextColor": "#000000",
+  "textColor": "#000000"
+}}}%%
 graph TD
     %% Define Node Styles
     classDef startEnd fill:#f9f,stroke:#333,stroke-width:2px;
