@@ -2,12 +2,15 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from .state import State
 from .nodes import Nodes
+from GraphAgent.config.prompts import SYSTEM_PROMPT
 
 
 class WorkFlow:
     def __init__(self):
         self._nodes = None
         self._app = None
+        self.chat_history = []
+        self.chat_history.append(SYSTEM_PROMPT)
 
     @property
     def nodes(self):
@@ -43,11 +46,11 @@ class WorkFlow:
             "intent_detection_node",
             lambda state: (
                 "memory_query_node"
-                if state.get("current_intent","") in ["FIND_OBJECT", "DESCRIBE_AREA"]
+                if state.get("current_intent", "") in ["FIND_OBJECT", "DESCRIBE_AREA"]
                 else "prep_nav_target_coords"
-                if state.get("current_intent","") == "NAVIGATE_TO_COORDS"
+                if state.get("current_intent", "") == "NAVIGATE_TO_COORDS"
                 else "action_execution_node"
-                if state.get("current_intent","") == "DIRECT_ACTION"
+                if state.get("current_intent", "") == "DIRECT_ACTION"
                 else "llm_response_node"
             ),
             {
@@ -62,7 +65,8 @@ class WorkFlow:
             "memory_query_node",
             lambda state: (
                 "prep_nav_target_memory"
-                if state.get("memory_query_results") and not state.get("requires_clarification")
+                if state.get("memory_query_results")
+                and not state.get("requires_clarification")
                 else "llm_response_node"
             ),
             {
@@ -84,11 +88,12 @@ class WorkFlow:
         # Display the LangGraph flow as Mermaid diagram.
         return self.app.get_graph().draw_mermaid()
 
-    def invoke(self, extracted_entities, debugMode=False) -> State:
+    def invoke(self, audio, extracted_entities, debugMode=False) -> State:
         # Start with an empty AssistanceState
         result_state = self.app.invoke(
             {
-                "extracted_entities": extracted_entities,   # Pass the extracted entities to the flow
+                "user_input_audio": audio,
+                "extracted_entities": extracted_entities,  # Pass the extracted entities to the flow
             },
             config={"configurable": {"thread_id": "1"}},
             debug=debugMode,
@@ -102,6 +107,7 @@ if __name__ == "__main__":
     while True:
         # For demo purposes, the user can trigger the flow by pressing enter.
         input("Press Enter to simulate a new Assistance Mode cycle...")
-        final_state = wf.invoke({},debugMode=True)
+        audio = None  # Replace with actual audio input
+        final_state = wf.invoke(audio, {}, debugMode=True)
         print("\nFinal AssistanceState:")
         print(final_state)
