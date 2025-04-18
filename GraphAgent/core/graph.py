@@ -1,20 +1,13 @@
-from dotenv import load_dotenv
-from langchain_core.messages import HumanMessage
-from .state import State
-from .nodes import Nodes
-from ..config.prompts import SYSTEM_PROMPT
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
-
-load_dotenv()
+from .state import State
+from .nodes import Nodes
 
 
 class WorkFlow:
     def __init__(self):
         self._nodes = None
         self._app = None
-        self.chat_history = []
-        self.chat_history.append(SYSTEM_PROMPT)
 
     @property
     def nodes(self):
@@ -31,71 +24,84 @@ class WorkFlow:
     def _initialize_workflow(self):
         workflow = StateGraph(State)
 
-        # Add nodes
-        workflow.add_node("respond_or_query", self.nodes.respond_or_query)
-        workflow.add_node("crewai_agent_query", self.nodes.crewai_query)
-        workflow.add_node("main_conversation", self.nodes.main_conversation)
+        # Add nodes according to the flow.
+        workflow.add_node("user_input_node", self.nodes.user_input_node)
+        workflow.add_node("intent_detection_node", self.nodes.intent_detection_node)
+        workflow.add_node("memory_query_node", self.nodes.memory_query_node)
+        workflow.add_node("prep_nav_target_coords", self.nodes.prep_nav_target_coords)
+        workflow.add_node("prep_nav_target_memory", self.nodes.prep_nav_target_memory)
+        workflow.add_node("navigation_node", self.nodes.navigation_node)
+        workflow.add_node("action_execution_node", self.nodes.action_execution_node)
+        workflow.add_node("llm_response_node", self.nodes.llm_response_node)
+        workflow.add_node("text_to_speech_node", self.nodes.text_to_speech_node)
 
-        # Add edges
-        workflow.set_entry_point("respond_or_query")
+        # Define entry point.
+        workflow.set_entry_point("user_input_node")
+        workflow.add_edge("user_input_node", "intent_detection_node")
+        # Conditional edges based on current_intent.
         workflow.add_conditional_edges(
-            "respond_or_query",
-            lambda x: "crewai_agent_query"
-            if x["task_decision"] == "query"
-            else (
-                "main_conversation"
-                if x["task_decision"] == "respond"
-                else "respond_or_query"
+            "intent_detection_node",
+            lambda state: (
+                "memory_query_node"
+                if state.get("current_intent","") in ["FIND_OBJECT", "DESCRIBE_AREA"]
+                else "prep_nav_target_coords"
+                if state.get("current_intent","") == "NAVIGATE_TO_COORDS"
+                else "action_execution_node"
+                if state.get("current_intent","") == "DIRECT_ACTION"
+                else "llm_response_node"
             ),
             {
-                "crewai_agent_query": "crewai_agent_query",
-                "main_conversation": "main_conversation",
-                "respond_or_query": "respond_or_query",
+                "memory_query_node": "memory_query_node",
+                "prep_nav_target_coords": "prep_nav_target_coords",
+                "action_execution_node": "action_execution_node",
+                "llm_response_node": "llm_response_node",
             },
         )
-        workflow.add_edge("crewai_agent_query", "main_conversation")
-        workflow.add_edge("main_conversation", END)
+        # After memory_query_node, decide based on query results.
+        workflow.add_conditional_edges(
+            "memory_query_node",
+            lambda state: (
+                "prep_nav_target_memory"
+                if state.get("memory_query_results") and not state.get("requires_clarification")
+                else "llm_response_node"
+            ),
+            {
+                "prep_nav_target_memory": "prep_nav_target_memory",
+                "llm_response_node": "llm_response_node",
+            },
+        )
+        # Route navigation targets to navigation node.
+        workflow.add_edge("prep_nav_target_coords", "navigation_node")
+        workflow.add_edge("prep_nav_target_memory", "navigation_node")
+        workflow.add_edge("navigation_node", "llm_response_node")
+        workflow.add_edge("action_execution_node", "llm_response_node")
+        workflow.add_edge("llm_response_node", "text_to_speech_node")
+        workflow.add_edge("text_to_speech_node", END)
 
         self._app = workflow.compile(MemorySaver())
 
     def display_graph(self) -> str:
+        # Display the LangGraph flow as Mermaid diagram.
         return self.app.get_graph().draw_mermaid()
 
-    def invoke(self, user_input: str, debugMode=False) -> dict:
-        if isinstance(user_input, str):
-            message = HumanMessage(content=user_input)
-        else:
-            message = user_input
-
-        self.chat_history.append(message)
-
-        result = self.app.invoke(
+    def invoke(self, extracted_entities, debugMode=False) -> State:
+        # Start with an empty AssistanceState
+        result_state = self.app.invoke(
             {
-                "messages": [message],  # Only pass the current message
-                "chat_history": self.chat_history,  # Pass the full history
+                "extracted_entities": extracted_entities,   # Pass the extracted entities to the flow
             },
             config={"configurable": {"thread_id": "1"}},
             debug=debugMode,
         )
-
-        if "chat_history" in result:
-            self.chat_history = result["chat_history"]
-
-        return result
-
-    def clear(self):
-        self.chat_history = []
-
-    def set_chat_history(self, chat_history: list) -> None:
-        """Set the chat history for the workflow."""
-        self.chat_history = chat_history
+        return result_state
 
 
 if __name__ == "__main__":
     wf = WorkFlow()
     print(wf.display_graph())
     while True:
-        result = wf.invoke(input("You: "), debugMode=False)
-        print("\n\nFinal result:")
-        print(result["messages"][-1].content)
-        print("\n\n")
+        # For demo purposes, the user can trigger the flow by pressing enter.
+        input("Press Enter to simulate a new Assistance Mode cycle...")
+        final_state = wf.invoke({},debugMode=True)
+        print("\nFinal AssistanceState:")
+        print(final_state)
