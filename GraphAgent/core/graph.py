@@ -3,6 +3,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from .state import State
 from .nodes import Nodes
 from GraphAgent.config.prompts import SYSTEM_PROMPT
+from GraphAgent.utils.audio import record_audio
 
 
 class WorkFlow:
@@ -107,7 +108,8 @@ if __name__ == "__main__":
     while True:
         # For demo purposes, the user can trigger the flow by pressing enter.
         input("Press Enter to simulate a new Assistance Mode cycle...")
-        audio = None  # Replace with actual audio input
+        # Record audio from microphone and get temporary file path
+        audio = record_audio()
         final_state = wf.invoke(audio, {}, debugMode=True)
         print("\nFinal AssistanceState:")
         print(final_state)

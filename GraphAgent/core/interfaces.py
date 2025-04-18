@@ -1,9 +1,13 @@
 from typing import Tuple, Dict, Any, List
+from GraphAgent.utils.audio import record_audio, transcribe_with_groq
 
 
-def transcribe_audio() -> str:
-    # Placeholder: Convert audio input to text.
-    return "transcribed text"
+
+def transcribe_audio(audio: Any) -> str:
+    # Record audio if not provided, then transcribe using Groq API
+    audio_file = audio if isinstance(audio, str) and audio else record_audio()
+    # Transcribe with specified model and language
+    return transcribe_with_groq(audio_file, model="whisper-large-v3", language="en")
 
 
 def get_current_pose() -> Tuple[float, float, float]:
@@ -39,3 +43,21 @@ def call_main_llm(prompt: str) -> str:
 def synthesize_speech(text: str) -> None:
     # Placeholder: Synthesize speech from text (TTS).
     print(f"Synthesized Speech: {text}")
+
+if __name__ == "__main__":
+    import sounddevice as sd
+    import soundfile as sf
+    # Example usage
+    audio_file = record_audio()
+    # Play audio
+    print(f"Playing audio from {audio_file}...")
+    def play_audio(file_path):
+        """Play audio from the specified file path using sounddevice."""
+        data, samplerate = sf.read(file_path)
+        sd.play(data, samplerate)
+        sd.wait()  # Wait until the audio is finished playing
+
+    # Play the recorded audio
+    play_audio(audio_file)
+    transcription = transcribe_audio(audio_file)
+    print(f"Transcription: {transcription}")
