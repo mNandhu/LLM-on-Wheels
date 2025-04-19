@@ -3,7 +3,6 @@ from langgraph.checkpoint.memory import MemorySaver
 from .state import State
 from .nodes import Nodes
 from GraphAgent.config.prompts import SYSTEM_PROMPT
-from GraphAgent.utils.audio import record_audio
 
 
 class WorkFlow:
@@ -103,6 +102,8 @@ class WorkFlow:
 
 
 if __name__ == "__main__":
+    from GraphAgent.utils.audio import record_audio
+
     wf = WorkFlow()
     print(wf.display_graph())
     while True:
