@@ -26,7 +26,7 @@ class Nodes:
         state["user_input_text"] = interfaces.transcribe_audio(
             state.get(
                 "user_input_audio",
-                "data/audio/rotate45.wav",
+                "data/audio/goto_20_40_75.wav",
             )
         )
         # Update current pose as gathered from robot sensors.
