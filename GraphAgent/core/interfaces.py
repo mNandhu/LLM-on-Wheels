@@ -2,11 +2,22 @@ from typing import Tuple, Dict, Any, List
 from GraphAgent.utils.audio import record_audio, transcribe_with_groq
 
 
+"""Interfaces for Audio Processing"""
+
+
 def transcribe_audio(audio: Any) -> str:
     # Record audio if not provided, then transcribe using Groq API
     audio_file = audio if isinstance(audio, str) and audio else record_audio()
     # Transcribe with specified model and language
     return transcribe_with_groq(audio_file, model="whisper-large-v3", language="en")
+
+
+def synthesize_speech(text: str) -> None:
+    # Placeholder: Synthesize speech from text (TTS).
+    print(f"Synthesized Speech: {text}")
+
+
+"""Interfaces for Robot Navigation"""
 
 
 def get_current_pose() -> Tuple[float, float, float]:
@@ -32,16 +43,6 @@ def get_nav_status() -> str:
 def execute_robot_action(action: str, params: Dict[str, Any]) -> str:
     # Placeholder: Execute a direct robot action and return a status string.
     return f"Action {action} executed with params {params}"
-
-
-def call_main_llm(prompt: str) -> str:
-    # Placeholder: Call the main LLM and return response text.
-    return "LLM response based on prompt"
-
-
-def synthesize_speech(text: str) -> None:
-    # Placeholder: Synthesize speech from text (TTS).
-    print(f"Synthesized Speech: {text}")
 
 
 if __name__ == "__main__":
