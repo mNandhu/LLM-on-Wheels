@@ -3,6 +3,7 @@ from GraphAgent.utils.misc import Colors
 from GraphAgent.llm.service import get_chat_llm
 from . import interfaces
 from GraphAgent.llm.intent_detection import classify_intent
+from GraphAgent.llm.coord_detection import detect_coords
 
 
 class Nodes:
@@ -39,21 +40,21 @@ class Nodes:
     def intent_detection_node(self, state: State) -> State:
         """
         Detects the intent of the user input and updates the state.
-        
+
         Uses the classify_intent function to determine user intent from
         conversation history and current input.
 
         Updates "current_intent" in the state.
         """
-        
+
         # Get user input and conversation history
         user_input = state.get("user_input_text", "")
         history = state.get("chat_history", [])
-        
+
         # Use the classify_intent function to determine the intent
         intent = classify_intent(user_input, history, self.chat_llm)
         state["current_intent"] = intent
-        
+
         print(
             f"{Colors.BLUE}[intent_detection_node] Detected intent: {state.get('current_intent')}{Colors.ENDC}"
         )
@@ -72,12 +73,24 @@ class Nodes:
         return state
 
     def prep_nav_target_coords(self, state: State) -> State:
-        # Stub: Prepare navigation target from extracted coordinate entities.
-        # For now, we hardcode a target.
-        state["navigation_target"] = (1.0, 2.0, 0.0)
-        print(
-            f"{Colors.BLUE}[prep_nav_target_coords] Navigation target (from coords): {state.get('navigation_target')}{Colors.ENDC}"
-        )
+        # Extract navigation target coordinates from user input using LLM
+        user_input = state.get("user_input_text", "")
+        history = state.get("chat_history", [])
+        try:
+            coords = detect_coords(user_input, history, self.chat_llm)
+            x, y, theta = (
+                coords.get("x", 0.0),
+                coords.get("y", 0.0),
+                coords.get("theta", 0.0),
+            )
+            state["navigation_target"] = (x, y, theta)
+            print(
+                f"{Colors.BLUE}[prep_nav_target_coords] Extracted coords -> x: {x}, y: {y}, theta: {theta}{Colors.ENDC}"
+            )
+        except Exception as e:
+            print(
+                f"{Colors.RED}[prep_nav_target_coords] Coordinate extraction failed: {e}{Colors.ENDC}"
+            )
         return state
 
     def prep_nav_target_memory(self, state: State) -> State:

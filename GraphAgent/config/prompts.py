@@ -127,3 +127,27 @@ The query is: {user_input}
         ),
     ]
 )
+
+# Prompt template for extracting navigation coordinates
+PROMPT_COORD_DETECTION_WITH_HISTORY = ChatPromptTemplate.from_messages(
+    [
+        MessagesPlaceholder(variable_name="history"),
+        (
+            "system",
+            """
+Extract the X, Y, and theta coordinates from the user's command. 
+The user may say something like "Go to x 20, y 30 and theta 40".
+Output only JSON with keys "x", "y", and "theta" and numeric values.
+
+If the coordinates are not present in the query, respond with:
+{{
+    "x": null,
+    "y": null,
+    "theta": null
+}}
+
+The query is: {user_input}
+""",
+        ),
+    ]
+)
