@@ -102,7 +102,7 @@ class WorkFlow:
 
 
 if __name__ == "__main__":
-    from GraphAgent.utils.audio import record_audio
+    # from GraphAgent.utils.audio import record_audio
 
     wf = WorkFlow()
     print(wf.display_graph())
@@ -110,7 +110,7 @@ if __name__ == "__main__":
         # For demo purposes, the user can trigger the flow by pressing enter.
         input("Press Enter to simulate a new Assistance Mode cycle...")
         # Record audio from microphone and get temporary file path
-        audio = record_audio()
+        audio = "data/audio/rotate45.wav"  # record_audio()
         final_state = wf.invoke(audio, {}, debugMode=True)
         print("\nFinal AssistanceState:")
         print(final_state)

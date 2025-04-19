@@ -23,7 +23,10 @@ class Nodes:
         """
         # Stub: Simulate capturing user speech (or text) and updating pose history.
         state["user_input_text"] = interfaces.transcribe_audio(
-            state.get("user_input_audio")
+            state.get(
+                "user_input_audio",
+                "data/audio/rotate45.wav",
+            )
         )
         # Update current pose as gathered from robot sensors.
         state["current_robot_pose"] = interfaces.get_current_pose()
