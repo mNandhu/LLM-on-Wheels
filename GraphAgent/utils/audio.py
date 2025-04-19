@@ -3,6 +3,11 @@ import soundfile as sf
 import tempfile
 from groq import Groq
 import numpy as np
+from dotenv import load_dotenv
+import os
+from elevenlabs.client import ElevenLabs
+
+load_dotenv()
 
 
 def record_audio(duration: int = 5, fs: int = 16000) -> str:
@@ -26,6 +31,13 @@ def record_audio(duration: int = 5, fs: int = 16000) -> str:
     return tmp_file.name
 
 
+def play_audio(audio_file_path: str):
+    print("Playing audio...")
+    data, samplerate = sf.read(audio_file_path)
+    sd.play(data, samplerate)
+    sd.wait()
+
+
 def transcribe_with_groq(
     file_path: str, model: str = "whisper-large-v3", language: str = "en"
 ) -> str:
@@ -47,6 +59,35 @@ def transcribe_with_groq(
     if isinstance(transcription, dict) and "text" in transcription:
         return transcription["text"]
     return str(transcription)
+
+
+def synthesize_audio_with_elevenlabs(
+    text: str,
+    voice_id: str = "JBFqnCBsd6RMkjVDRZzb",
+    model_id: str = "eleven_multilingual_v2",
+    output_format: str = "mp3_44100_128",
+) -> str:
+    """
+    Synthesize speech using ElevenLabs TTS and save it to a temporary file.
+    Returns the path to the generated audio file.
+    """
+
+    api_key = os.getenv("ELEVENLABS_API_KEY")
+    if not api_key:
+        raise RuntimeError("ELEVENLABS_API_KEY not set in environment")
+    client = ElevenLabs(api_key=api_key)
+    # The convert() method returns a generator yielding byte chunks
+    audio_stream = client.text_to_speech.convert(
+        text=text,
+        voice_id=voice_id,
+        model_id=model_id,
+        output_format=output_format,
+    )
+    # Write streamed audio chunks to a temporary file
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as tmp:
+        for chunk in audio_stream:
+            tmp.write(chunk)
+        return tmp.name
 
 
 if __name__ == "__main__":

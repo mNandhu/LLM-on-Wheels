@@ -127,16 +127,22 @@ class Nodes:
 
     def llm_response_node(self, state: State) -> State:
         # Stub: Generate LLM response, for clarifications or general Q&A.
-        state["llm_response_text"] = state.get("user_input_text") # Mirror input (stub)
+        state["llm_response_text"] = state.get("user_input_text")  # Mirror input (stub)
         print(
             f"{Colors.BLUE}[llm_response_node] LLM response text: {state.get('llm_response_text')}{Colors.ENDC}"
         )
         return state
 
     def text_to_speech_node(self, state: State) -> State:
-        # Stub: Convert the final response text to speech.
+        # Convert the final response text to speech.
         state["final_response_text"] = state.get("llm_response_text") or "No response."
-        interfaces.synthesize_speech(state["final_response_text"])
+        # Synthesize speech and get audio file path
+        audio_file = interfaces.synthesize_speech(state["final_response_text"])
+        state["final_response_audio"] = audio_file
+        # Log audio file location and response text
+        print(
+            f"{Colors.BLUE}[text_to_speech_node] Generated audio file: {audio_file}{Colors.ENDC}"
+        )
         print(
             f"{Colors.BLUE}[text_to_speech_node] Final response text: {state.get('final_response_text')}{Colors.ENDC}"
         )

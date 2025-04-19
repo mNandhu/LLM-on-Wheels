@@ -1,5 +1,10 @@
 from typing import Tuple, Dict, Any, List
-from GraphAgent.utils.audio import record_audio, transcribe_with_groq
+from GraphAgent.utils.audio import (
+    record_audio,
+    play_audio,
+    transcribe_with_groq,
+    synthesize_audio_with_elevenlabs,
+)
 
 
 """Interfaces for Audio Processing"""
@@ -12,9 +17,16 @@ def transcribe_audio(audio: Any) -> str:
     return transcribe_with_groq(audio_file, model="whisper-large-v3", language="en")
 
 
-def synthesize_speech(text: str) -> None:
-    # Placeholder: Synthesize speech from text (TTS).
-    print(f"Synthesized Speech: {text}")
+def synthesize_speech(text: str) -> str:
+    """
+    Synthesize speech from text using ElevenLabs and play the audio.
+    Returns the file path of the generated audio.
+    """
+    # Generate speech audio via ElevenLabs
+    audio_file = synthesize_audio_with_elevenlabs(text)
+    # Play the generated audio
+    play_audio(audio_file)
+    return audio_file
 
 
 """Interfaces for Robot Navigation"""
