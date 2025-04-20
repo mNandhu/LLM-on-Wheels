@@ -17,7 +17,7 @@ USER_INTENTS = {
     "NAVIGATE_TO_COORDS": "Navigate to a specific set of coordinates.",
     "DIRECT_ACTION": "Execute a direct action, such as rotating or stopping.",
     # Yet to be implemented
-    # "CHITCHAT": "Engage in casual conversation.",
+    "CHITCHAT": "Engage in casual conversation.",
     # "QUESTION_ANSWERING": "Answer a question about the environment or robot status.",
     # "UNKNOWN": "The user's intent is unclear.",
     # "CONFIRMATION": "Confirm a previous action or request.",
