@@ -6,6 +6,9 @@ from ..llm.intent_detection import classify_intent
 from ..llm.coord_detection import detect_coords
 from ..llm.memory_querying import extract_label
 from ..utils.audio import record_audio
+from ..llm.final_response import generate_final_response
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+
 
 class Nodes:
     def __init__(self):
@@ -27,7 +30,7 @@ class Nodes:
         state["user_input_text"] = interfaces.transcribe_audio(
             state.get(
                 "user_input_audio",
-            record_audio(duration=3)  # Record audio if not provided
+                record_audio(duration=3),  # Record audio if not provided
             )
         )
         # Update current pose as gathered from robot sensors.
@@ -35,6 +38,8 @@ class Nodes:
         print(
             f"{Colors.BLUE}[user_input_node] Captured input: {state.get('user_input_text')}{Colors.ENDC}"
         )
+
+        state["chat_history"].append(HumanMessage(content=state["user_input_text"]))
 
         return state
 
@@ -55,6 +60,10 @@ class Nodes:
         # Use the classify_intent function to determine the intent
         intent = classify_intent(user_input, history, self.chat_llm)
         state["current_intent"] = intent
+
+        state["chat_history"].append(
+            SystemMessage(content=f"Detected intent: {intent} in query: {user_input}")
+        )
 
         print(
             f"{Colors.BLUE}[intent_detection_node] Detected intent: {state.get('current_intent')}{Colors.ENDC}"
@@ -91,6 +100,12 @@ class Nodes:
             print(
                 f"{Colors.BLUE}[memory_query_node] Query label: {label}, results: {results}, needs_clarity: {state.get('requires_clarification')}{Colors.ENDC}"
             )
+            # Log to history
+            state["chat_history"].append(
+                SystemMessage(
+                    content=f"Memory query for '{label}' returned {len(results)} result(s), clarification needed: {state.get('requires_clarification')}"
+                )
+            )
         return state
 
     def prep_nav_target_coords(self, state: State) -> State:
@@ -107,6 +122,12 @@ class Nodes:
             state["navigation_target"] = (x, y, theta)
             print(
                 f"{Colors.BLUE}[prep_nav_target_coords] Extracted coords -> x: {x}, y: {y}, theta: {theta}{Colors.ENDC}"
+            )
+            # Log to history
+            state["chat_history"].append(
+                SystemMessage(
+                    content=f"Extracted navigation coordinates: x={x}, y={y}, theta={theta}"
+                )
             )
         except Exception as e:
             print(
@@ -128,16 +149,32 @@ class Nodes:
             print(
                 f"{Colors.BLUE}[prep_nav_target_memory] Navigation target from memory: {state.get('navigation_target')}{Colors.ENDC}"
             )
+            # Log to history
+            state["chat_history"].append(
+                SystemMessage(
+                    content=f"Prepared navigation target from memory at {state.get('navigation_target')}"
+                )
+            )
         return state
 
     def navigation_node(self, state: State) -> State:
-        # Stub: Execute navigation if a target is set.
+        # Execute navigation if a target is set.
         if state.get("navigation_target"):
             x, y, theta = state["navigation_target"]
             interfaces.send_nav_goal(x, y, theta)
             state["navigation_status"] = interfaces.get_nav_status()
+            # FIXME: This blocks execution, because the simulation is running in the same thread.
+            # while state["navigation_status"] == "IN_PROGRESS":
+                # Poll for navigation status until completed
+                # state["navigation_status"] = interfaces.get_nav_status()
             print(
                 f"{Colors.BLUE}[navigation_node] Navigation status: {state.get('navigation_status')}{Colors.ENDC}"
+            )
+            # Log to history
+            state["chat_history"].append(
+                SystemMessage(
+                    content=f"Navigation action completed with status: {state.get('navigation_status')}"
+                )
             )
         return state
 
@@ -149,13 +186,22 @@ class Nodes:
         print(
             f"{Colors.BLUE}[action_execution_node] Action status: {state.get('action_status')}{Colors.ENDC}"
         )
+        # Log to history
+        state["chat_history"].append(
+            SystemMessage(
+                content=f"Action 'rotate' executed with status: {state.get('action_status')}"
+            )
+        )
         return state
 
     def llm_response_node(self, state: State) -> State:
-        # Stub: Generate LLM response, for clarifications or general Q&A.
-        state["llm_response_text"] = state.get("user_input_text")  # Mirror input (stub)
+        # Generate final LLM response based on full state context
+        response = generate_final_response(state, self.chat_llm)
+        state["llm_response_text"] = response
+        # Append assistant message to chat history
+        state["chat_history"].append(AIMessage(content=response))
         print(
-            f"{Colors.BLUE}[llm_response_node] LLM response text: {state.get('llm_response_text')}{Colors.ENDC}"
+            f"{Colors.BLUE}[llm_response_node] LLM response text: {response}{Colors.ENDC}"
         )
         return state
 

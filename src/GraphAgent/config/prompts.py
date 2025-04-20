@@ -80,3 +80,18 @@ PROMPT_EXTRACT_LABEL = ChatPromptTemplate.from_messages(
         ("user", "{user_input}"),
     ]
 )
+
+# Prompt for generating final response based on full state context
+PROMPT_FINAL_RESPONSE = ChatPromptTemplate.from_messages(
+    [
+        MessagesPlaceholder(variable_name="history"),
+        (
+            "system",
+            "Context:\nIntent: {intent}\nExtracted Entities: {extracted_entities}\n"
+            "Memory Results: {memory_query_results}\nNavigation Target: {navigation_target}\n"
+            "Navigation Status: {navigation_status}\nAction Status: {action_status}\n"
+            "Requires Clarification: {requires_clarification}\nError Message: {error_message}\n"
+            "\nBased on the above context and the user's query '{user_input_text}', generate a concise, user-friendly response.",
+        ),
+    ]
+)

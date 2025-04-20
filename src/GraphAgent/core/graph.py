@@ -94,6 +94,7 @@ class WorkFlow:
             {
                 "user_input_audio": audio,
                 "extracted_entities": extracted_entities,  # Pass the extracted entities to the flow
+                "chat_history": self.chat_history,
             },
             config={"configurable": {"thread_id": "1"}},
             debug=debugMode,
