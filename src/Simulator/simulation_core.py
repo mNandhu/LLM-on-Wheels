@@ -2,7 +2,24 @@
 import pygame
 import pygame.freetype
 import math
-from typing import List, Tuple, Optional
+import heapq
+from typing import List, Tuple
+
+
+# Helper functions
+def _clamp(val: float, min_val: float, max_val: float) -> float:
+    return max(min_val, min(val, max_val))
+
+
+def circle_rect_collision(
+    cx: float, cy: float, radius: float, rect: pygame.Rect
+) -> bool:
+    # Find the closest point on the rect to the circle center
+    closest_x = _clamp(cx, rect.left, rect.right)
+    closest_y = _clamp(cy, rect.top, rect.bottom)
+    dx = cx - closest_x
+    dy = cy - closest_y
+    return (dx * dx + dy * dy) < (radius * radius)
 
 
 # Simple robot representation
@@ -12,27 +29,43 @@ class Robot:
         self.y = y
         self.theta = theta
         self.speed = speed  # pixels per frame
-        self.nav_target: Optional[Tuple[float, float, float]] = None
+        # path following attributes
+        self.path: List[Tuple[float, float]] = []
+        self.path_index: int = 0
+        self.final_theta: float = theta
         self.nav_status: str = "IDLE"
+        self.radius: float = 10.0  # collision radius
 
     def set_nav_goal(self, x: float, y: float, theta: float):
-        self.nav_target = (x, y, theta)
+        # Placeholder: actual planning done in Simulation.send_nav_goal
+        self.final_theta = theta
         self.nav_status = "PLANNING"
 
     def update(self):
-        if not self.nav_target:
+        # Follow computed path waypoints
+        if not self.path or self.nav_status == "SUCCEEDED":
             return
-        tx, ty, ttheta = self.nav_target
-        # simple straight-line movement
+        tx, ty = self.path[self.path_index]
         dx, dy = tx - self.x, ty - self.y
-        dist = (dx**2 + dy**2) ** 0.5
+        dist = math.hypot(dx, dy)
+        # Update heading to face movement direction
+        if dist > 0:
+            rad = math.atan2(-dy, dx)
+            self.theta = math.degrees(rad) % 360
         if dist < self.speed:
-            # reached target
-            self.x, self.y, self.theta = tx, ty, ttheta
-            self.nav_status = "SUCCEEDED"
-            self.nav_target = None
+            # reached waypoint
+            self.x, self.y = tx, ty
+            if self.path_index == len(self.path) - 1:
+                # final goal reached
+                self.theta = self.final_theta
+                self.nav_status = "SUCCEEDED"
+                self.path = []
+                self.path_index = 0
+            else:
+                self.path_index += 1
+                self.nav_status = "IN_PROGRESS"
         else:
-            # move towards target
+            # move towards waypoint
             self.x += self.speed * dx / dist
             self.y += self.speed * dy / dist
             self.nav_status = "IN_PROGRESS"
@@ -40,7 +73,7 @@ class Robot:
     def draw(self, surface: pygame.Surface, colors=None):
         # draw robot as a circle with heading indicator
         center = (int(self.x), int(self.y))
-        radius = 10
+        radius = int(self.radius)
 
         # Use provided colors or defaults
         robot_color = colors.get("robot", (0, 160, 230)) if colors else (0, 160, 230)
@@ -65,6 +98,81 @@ class Robot:
             int(self.y - math.sin(rad) * radius * 2),
         )
         pygame.draw.line(surface, heading_color, center, end_pos, 2)
+
+
+# Path planning: simple grid-based A* avoiding rectangular obstacles
+def plan_path(
+    start: Tuple[float, float],
+    goal: Tuple[float, float],
+    obstacles: List[pygame.Rect],
+    width: int,
+    height: int,
+    cell_size: int = 20,
+) -> List[Tuple[float, float]]:
+    cols = width // cell_size
+    rows = height // cell_size
+
+    # convert point to cell
+    def to_cell(p):
+        cx, cy = int(p[0]) // cell_size, int(p[1]) // cell_size
+        return max(0, min(cx, cols - 1)), max(0, min(cy, rows - 1))
+
+    # convert cell to center point
+    def to_point(c):
+        return (c[0] + 0.5) * cell_size, (c[1] + 0.5) * cell_size
+
+    start_cell = to_cell(start)
+    goal_cell = to_cell(goal)
+    # occupancy grid
+    grid = [[0] * rows for _ in range(cols)]
+    for ox in range(cols):
+        for oy in range(rows):
+            cell_rect = pygame.Rect(
+                ox * cell_size, oy * cell_size, cell_size, cell_size
+            )
+            if any(obs.colliderect(cell_rect) for obs in obstacles):
+                grid[ox][oy] = 1
+    # A* search
+    open_set = []
+    heapq.heappush(
+        open_set,
+        (
+            0 + abs(goal_cell[0] - start_cell[0]) + abs(goal_cell[1] - start_cell[1]),
+            0,
+            start_cell,
+            None,
+        ),
+    )
+    came_from = {}
+    cost_so_far = {start_cell: 0}
+    while open_set:
+        _, cost, current, parent = heapq.heappop(open_set)
+        if current == goal_cell:
+            came_from[current] = parent
+            break
+        if current in came_from:
+            continue
+        came_from[current] = parent
+        for dx, dy in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            nb = (current[0] + dx, current[1] + dy)
+            if 0 <= nb[0] < cols and 0 <= nb[1] < rows and grid[nb[0]][nb[1]] == 0:
+                new_cost = cost + 1
+                if nb not in cost_so_far or new_cost < cost_so_far[nb]:
+                    cost_so_far[nb] = new_cost
+                    priority = (
+                        new_cost + abs(goal_cell[0] - nb[0]) + abs(goal_cell[1] - nb[1])
+                    )
+                    heapq.heappush(open_set, (priority, new_cost, nb, current))
+    # reconstruct path
+    path = []
+    node = goal_cell
+    if node not in came_from:
+        return []
+    while node:
+        path.append(to_point(node))
+        node = came_from[node]
+    path.reverse()
+    return path
 
 
 # Simple environment with obstacles
@@ -93,7 +201,7 @@ class Simulation:
         self.robot = Robot(width / 2, height / 2)
         # example static obstacles
         obs1 = pygame.Rect(100, 100, 50, 50)
-        obs2 = pygame.Rect(400, 300, 100, 20)
+        obs2 = pygame.Rect(500, 300, 100, 20)
         self.env = Environment([obs1, obs2])
         # UI elements
         pygame.freetype.init()
@@ -135,7 +243,24 @@ class Simulation:
         return events
 
     def update(self, dt: float):
+        # Attempt movement then check for collisions
+        prev_x, prev_y, prev_theta = self.robot.x, self.robot.y, self.robot.theta
         self.robot.update()
+        # Detect collision with any obstacle and revert if needed
+        for obs in self.env.obstacles:
+            if circle_rect_collision(
+                self.robot.x, self.robot.y, self.robot.radius, obs
+            ):
+                # collision: revert position and cancel navigation
+                self.robot.x, self.robot.y, self.robot.theta = (
+                    prev_x,
+                    prev_y,
+                    prev_theta,
+                )
+                self.robot.nav_status = "FAILED"
+                self.robot.path = []
+                self.robot.path_index = 0
+                break
 
     def draw(self):
         # clear background and draw grid
@@ -154,8 +279,22 @@ class Simulation:
             self.screen, title_pos, title_text, self.colors["text"]
         )
 
-        # draw environment and robot
+        # draw environment
         self.env.draw(self.screen, self.colors["obstacle"])
+        # draw planned path
+        if self.robot.path:
+            # connect waypoints
+            for i in range(len(self.robot.path) - 1):
+                start = (int(self.robot.path[i][0]), int(self.robot.path[i][1]))
+                end = (int(self.robot.path[i + 1][0]), int(self.robot.path[i + 1][1]))
+                pygame.draw.line(self.screen, (0, 255, 0), start, end, 2)
+            # mark waypoints
+            for wp in self.robot.path:
+                pygame.draw.circle(
+                    self.screen, (255, 255, 0), (int(wp[0]), int(wp[1])), 3
+                )
+
+        # draw robot
         self.robot.draw(self.screen, self.colors)
 
         # draw record button with rounded corners and hover effect
@@ -265,3 +404,34 @@ class Simulation:
         flag = self.record_pressed
         self.record_pressed = False
         return flag
+
+    def send_nav_goal(self, x: float, y: float, theta: float):
+        """
+        Plan obstacle-avoiding path and set robot path.
+        """
+        # Debug: planning path
+        print(
+            f"[Simulation] send_nav_goal: planning from ({self.robot.x:.1f}, {self.robot.y:.1f}) to ({x:.1f}, {y:.1f})"
+        )
+        # compute path waypoints
+        path = plan_path(
+            (self.robot.x, self.robot.y),
+            (x, y),
+            self.env.obstacles,
+            self.width,
+            self.height,
+        )
+        if path:
+            # Replace last waypoint (cell center) with exact goal to avoid half-cell offset
+            path[-1] = (x, y)
+            print(
+                f"[Simulation] Path found with {len(path)} waypoints (adjusted final waypoint to exact target)"
+            )
+            self.robot.path = path
+            self.robot.path_index = 0
+            self.robot.final_theta = theta
+            self.robot.nav_status = "IN_PROGRESS"
+        else:
+            print("[Simulation] No path found, navigation failed")
+            # no path found
+            self.robot.nav_status = "FAILED"

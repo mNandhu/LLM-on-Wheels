@@ -43,7 +43,8 @@ def send_nav_goal_to_sim(x: float, y: float, theta: float) -> None:
     """
     global _simulation
     if _simulation is not None:
-        _simulation.robot.set_nav_goal(x, y, theta)
+        # Use Simulation.send_nav_goal to perform path planning
+        _simulation.send_nav_goal(x, y, theta)
 
 
 def get_nav_status_from_sim() -> str:
