@@ -2,6 +2,25 @@
 
 This project implements the "Assistance Mode" for a modular autonomous mobile robot using the LangGraph framework. This mode enables user interaction (voice), context-aware task handling, and robot action orchestration based on previously gathered environmental knowledge.
 
+## Installation
+  
+  ```bash
+  git clone https://github.com/mNandhu/LLM-on-Wheels.git
+  cd LLM-on-Wheels
+
+  # If uv is not installed
+  pip install uv
+
+  # Create .env
+  cp .env.example .env
+  # Add your API keys (Groq is must. ElevenLabs is optional if USE_AUDIO_OUTPUT=false)
+
+  uv venv --seed
+  source .venv/bin/activate
+  uv sync --reinstall
+  uv run -m src.main_simulation
+  ```
+
 ## Overview
 
 The robot operates in two modes:
