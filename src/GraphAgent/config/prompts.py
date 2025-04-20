@@ -90,6 +90,7 @@ PROMPT_FINAL_RESPONSE = ChatPromptTemplate.from_messages(
             "Context:\nIntent: {intent}\nExtracted Entities: {extracted_entities}\n"
             "Memory Results: {memory_query_results}\nNavigation Target: {navigation_target}\n"
             "Navigation Status: {navigation_status}\nAction Status: {action_status}\n"
+            "Current robot pose: {current_robot_pose}"
             "Requires Clarification: {requires_clarification}\nError Message: {error_message}\n"
             "\nBased on the above context and the user's query '{user_input_text}', generate a concise, user-friendly response.",
         ),

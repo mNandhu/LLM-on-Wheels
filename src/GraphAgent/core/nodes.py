@@ -8,7 +8,7 @@ from ..llm.memory_querying import extract_label
 from ..utils.audio import record_audio
 from ..llm.final_response import generate_final_response
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-
+from ..config.constants import USER_INTENTS
 
 class Nodes:
     def __init__(self):
@@ -62,7 +62,7 @@ class Nodes:
         state["current_intent"] = intent
 
         state["chat_history"].append(
-            SystemMessage(content=f"Detected intent: {intent} in query: {user_input}")
+            SystemMessage(content=f"Detected intent: {intent}:\"{USER_INTENTS[intent]}\" in query: {user_input}")
         )
 
         print(
@@ -163,13 +163,25 @@ class Nodes:
             x, y, theta = state["navigation_target"]
             interfaces.send_nav_goal(x, y, theta)
             state["navigation_status"] = interfaces.get_nav_status()
+
+            # Log to history
+            state["chat_history"].append(
+                SystemMessage(
+                    content=f"Navigation command sent to robot with target: {state.get('navigation_target')} - IN_PROGRESS"
+                )
+                )
+
             # FIXME: This blocks execution, because the simulation is running in the same thread.
-            # while state["navigation_status"] == "IN_PROGRESS":
+            while state["navigation_status"] == "IN_PROGRESS":
                 # Poll for navigation status until completed
-                # state["navigation_status"] = interfaces.get_nav_status()
+                state["navigation_status"] = interfaces.get_nav_status()
             print(
                 f"{Colors.BLUE}[navigation_node] Navigation status: {state.get('navigation_status')}{Colors.ENDC}"
             )
+
+            # Update current pose
+            state["current_robot_pose"] = interfaces.get_current_pose()
+
             # Log to history
             state["chat_history"].append(
                 SystemMessage(
