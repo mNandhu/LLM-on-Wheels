@@ -40,8 +40,31 @@ def get_current_pose() -> Tuple[float, float, float]:
 
 
 def query_memory(entity_type: str, criteria: Dict[str, Any]) -> List[Dict[str, Any]]:
-    # Placeholder: Query the structured memory with given criteria.
-    return []
+    # Fetch full memory from simulation
+    mem = sim.get_memory_data_from_sim()
+    print(mem)
+    results: List[Dict[str, Any]] = []
+    if entity_type == "object":
+        objs = mem.get("object_instances", {})
+        for entry in objs.values():
+            # filter by criteria if provided
+            match = True
+            if criteria:
+                # assume criteria contains 'label' to match object label
+                label = criteria.get("label")
+                if label and entry.get("label", "").lower() != str(label).lower():
+                    match = False
+            if match:
+                results.append(entry)
+    # TODO: support other entity types
+    return results
+
+
+def get_full_memory() -> Dict[str, Any]:
+    """
+    Return the full structured memory from the simulation.
+    """
+    return sim.get_memory_data_from_sim()
 
 
 def send_nav_goal(x: float, y: float, theta: float) -> None:

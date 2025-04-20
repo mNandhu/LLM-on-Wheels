@@ -214,6 +214,27 @@ class Simulation:
         button_height = text_rect.height + 20  # Add padding
         self.record_button = pygame.Rect(20, 20, button_width, button_height)
         self.record_pressed = False
+        # Initialize objects for detection (example static objects)
+        cup_rect = pygame.Rect(200, 150, 20, 20)
+        book_rect = pygame.Rect(600, 400, 30, 20)
+        self.objects = [
+            {"entry_id": "obj1", "rect": cup_rect, "label": "cup", "confidence": 0.92},
+            {
+                "entry_id": "obj2",
+                "rect": book_rect,
+                "label": "book",
+                "confidence": 0.85,
+            },
+        ]
+        # Memory storage for mapped objects
+        self.memory_data: dict = {}
+        # Create Map Area button below Record Audio
+        map_text = "Map Area"
+        text_rect2 = self.button_font.get_rect(map_text)
+        map_w = text_rect2.width + 30
+        map_h = text_rect2.height + 20
+        self.map_button = pygame.Rect(20, self.record_button.bottom + 10, map_w, map_h)
+        self.map_pressed = False
 
         # Color scheme for dark theme
         self.colors = {
@@ -240,10 +261,32 @@ class Simulation:
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 if self.record_button.collidepoint(event.pos):
                     self.record_pressed = True
+                elif self.map_button.collidepoint(event.pos):
+                    self.map_pressed = True
         return events
 
+    def map_area(self):
+        """
+        Simulate object detection and build memory data.
+        """
+        data = {"object_instances": {}}
+        for obj in self.objects:
+            cx, cy = obj["rect"].center
+            entry = {
+                "entry_id": obj["entry_id"],
+                "entry_type": "object",
+                "label": obj["label"],
+                "confidence": obj["confidence"],
+                "map_coordinates": {"x": float(cx), "y": float(cy), "theta": 0.0},
+                "timestamp": "",
+                "detected_in_images": [],
+            }
+            data["object_instances"][obj["entry_id"]] = entry
+        self.memory_data = data
+        print(f"[Simulation] Mapped area: {len(self.objects)} objects detected")
+        self.map_pressed = False
+
     def update(self, dt: float):
-        # Attempt movement then check for collisions
         prev_x, prev_y, prev_theta = self.robot.x, self.robot.y, self.robot.theta
         self.robot.update()
         # Detect collision with any obstacle and revert if needed
@@ -281,6 +324,14 @@ class Simulation:
 
         # draw environment
         self.env.draw(self.screen, self.colors["obstacle"])
+        # draw objects (detectable entities)
+        for obj in self.objects:
+            pygame.draw.rect(self.screen, (255, 200, 0), obj["rect"])
+            # label above object
+            label = obj["label"]
+            pos = (obj["rect"].x, obj["rect"].y - 5)
+            self.font.render_to(self.screen, pos, label, self.colors["text"])
+
         # draw planned path
         if self.robot.path:
             # connect waypoints
@@ -332,6 +383,25 @@ class Simulation:
             self.colors["button_text"],
         )
 
+        # draw map button
+        is_hover_map = self.map_button.collidepoint(pygame.mouse.get_pos())
+        btn_color_map = (
+            self.colors["button_hover"] if is_hover_map else self.colors["button"]
+        )
+        pygame.draw.rect(self.screen, btn_color_map, self.map_button, border_radius=8)
+        pygame.draw.rect(
+            self.screen, (255, 255, 255), self.map_button, 2, border_radius=8
+        )
+        # map button text
+        text_rect2 = self.button_font.get_rect("Map Area")
+        text_pos2 = (
+            self.map_button.x + (self.map_button.width - text_rect2.width) // 2,
+            self.map_button.y + (self.map_button.height - text_rect2.height) // 2,
+        )
+        self.button_font.render_to(
+            self.screen, text_pos2, "Map Area", self.colors["button_text"]
+        )
+
         # draw info panel with semi-transparent background
         panel_width = 250
         panel_height = 100
@@ -377,6 +447,15 @@ class Simulation:
             self.colors["text"],
         )
 
+        # display mapped memory data below map button
+        if self.memory_data.get("object_instances"):
+            y0 = self.map_button.bottom + 10
+            for i, entry in enumerate(self.memory_data["object_instances"].values()):
+                txt = f"{entry['label']} @ ({entry['map_coordinates']['x']:.0f},{entry['map_coordinates']['y']:.0f})"
+                self.font.render_to(
+                    self.screen, (20, y0 + i * 20), txt, self.colors["text"]
+                )
+
         pygame.display.flip()
 
     def step(self) -> List[pygame.event.EventType]:
@@ -385,6 +464,9 @@ class Simulation:
         """
         dt = self.clock.tick(30) / 1000.0
         events = self.handle_events()
+        # trigger mapping if requested
+        if self.map_pressed:
+            self.map_area()
         self.update(dt)
         self.draw()
         return events
@@ -429,7 +511,8 @@ class Simulation:
             )
             self.robot.path = path
             self.robot.path_index = 0
-            self.robot.final_theta = theta
+            if theta is not None:
+                self.robot.final_theta = theta
             self.robot.nav_status = "IN_PROGRESS"
         else:
             print("[Simulation] No path found, navigation failed")

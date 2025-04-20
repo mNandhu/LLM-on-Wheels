@@ -93,3 +93,13 @@ def step_simulation() -> List[pygame.event.Event]:
     if not _simulation:
         return []
     return _simulation.step()
+
+
+def get_memory_data_from_sim() -> dict:
+    """
+    Return the mapped memory data collected by the simulation.
+    """
+    global _simulation
+    if _simulation is None or not hasattr(_simulation, "memory_data"):
+        return {}
+    return _simulation.memory_data

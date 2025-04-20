@@ -4,6 +4,7 @@ from ..llm.service import get_chat_llm
 from . import interfaces
 from ..llm.intent_detection import classify_intent
 from ..llm.coord_detection import detect_coords
+from ..llm.memory_querying import extract_label
 
 
 class Nodes:
@@ -61,14 +62,34 @@ class Nodes:
         return state
 
     def memory_query_node(self, state: State) -> State:
-        # Stub: Query structured memory if intent requires it.
-        # Here we use a placeholder query; criteria could be based on extracted_entities.
+        # Query structured memory for objects or area descriptions
         if state.get("current_intent") in ["FIND_OBJECT", "DESCRIBE_AREA"]:
-            state["memory_query_results"] = interfaces.query_memory(
-                "object", state.get("extracted_entities")
+            # Ensure 'extracted_entities' is initialized
+            if "extracted_entities" not in state:
+                state["extracted_entities"] = {}
+
+            # Extract object label from user input
+            label = extract_label(
+                state.get("user_input_text", ""),
+                state.get("chat_history", []),
+                self.chat_llm,
             )
+            # Store extracted entity for debugging or reuse
+            state["extracted_entities"]["label"] = label
+            # Query memory for matching objects
+            results = interfaces.query_memory(
+                "object", {"label": label} if label else {}
+            )
+            state["memory_query_results"] = results
+            # Determine if clarification is needed
+            if not results:
+                state["requires_clarification"] = True
+            elif len(results) > 1:
+                state["requires_clarification"] = True
+            else:
+                state["requires_clarification"] = False
             print(
-                f"{Colors.BLUE}[memory_query_node] Memory query results: {state.get('memory_query_results')}{Colors.ENDC}"
+                f"{Colors.BLUE}[memory_query_node] Query label: {label}, results: {results}, needs_clarity: {state.get('requires_clarification')}{Colors.ENDC}"
             )
         return state
 
@@ -94,13 +115,18 @@ class Nodes:
         return state
 
     def prep_nav_target_memory(self, state: State) -> State:
-        # Stub: Prepare navigation target based on memory query result.
-        if state.get("memory_query_results"):
-            # Simplest example: using first result's location.
-            result = state["memory_query_results"][0]
-            state["navigation_target"] = result.get("location", (0.0, 0.0, 0.0))
+        # Prepare navigation target based on memory query result
+        results = state.get("memory_query_results", [])
+        if results and not state.get("requires_clarification"):
+            # Use first unique result's map_coordinates
+            entry = results[0]
+            coords = entry.get("map_coordinates", {})
+            x = coords.get("x", 0.0)
+            y = coords.get("y", 0.0)
+            theta = coords.get("theta", 0.0)
+            state["navigation_target"] = (x, y, theta)
             print(
-                f"{Colors.BLUE}[prep_nav_target_memory] Navigation target (from memory): {state.get('navigation_target')}{Colors.ENDC}"
+                f"{Colors.BLUE}[prep_nav_target_memory] Navigation target from memory: {state.get('navigation_target')}{Colors.ENDC}"
             )
         return state
 

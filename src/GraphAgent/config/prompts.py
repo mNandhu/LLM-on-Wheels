@@ -151,3 +151,14 @@ The query is: {user_input}
         ),
     ]
 )
+
+# Prompt to extract object label from user query
+PROMPT_EXTRACT_LABEL = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "Extract the object label mentioned by the user. Output JSON with key 'label' and a string value. If no object is mentioned, output {{\"label\": null}} .",
+        ),
+        ("user", "{user_input}"),
+    ]
+)
