@@ -1,6 +1,4 @@
-# filepath: src/Simulator/simulation_api.py
 import pygame
-import math
 from typing import List
 
 from .simulation_core import Simulation
@@ -15,7 +13,7 @@ def initialize_simulation():
     """
     global _simulation
     if _simulation is None:
-        _simulation = Simulation(width=1920, height=1080)
+        _simulation = Simulation(width=1280, height=768)
 
 
 def shutdown_simulation():
