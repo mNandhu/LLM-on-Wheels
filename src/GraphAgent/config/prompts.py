@@ -81,6 +81,18 @@ PROMPT_EXTRACT_LABEL = ChatPromptTemplate.from_messages(
     ]
 )
 
+# Prompt to extract robot action and parameters
+PROMPT_EXTRACT_ACTION = ChatPromptTemplate.from_messages(
+    [
+        (
+            "system",
+            "Extract the desired robot action and its parameters. Valid actions: 'rotate' or 'move_forward'.\n"
+            "Output JSON with keys: 'action' (string), 'angle' (float or null), 'duration' (float or null).",
+        ),
+        ("user", "{user_input}"),
+    ]
+)
+
 # Prompt for generating final response based on full state context
 PROMPT_FINAL_RESPONSE = ChatPromptTemplate.from_messages(
     [

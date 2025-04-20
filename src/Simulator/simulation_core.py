@@ -3,7 +3,7 @@ import pygame
 import pygame.freetype
 import math
 import heapq
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Dict, Any
 
 
 # Helper functions
@@ -29,6 +29,13 @@ class Robot:
         self.y = y
         self.theta = theta
         self.speed = speed  # pixels per frame
+        # Action execution attributes
+        self.current_action: Optional[str] = None
+        self.action_params: Dict[str, Any] = {}
+        self.action_time_left: float = 0.0
+        self.action_status: str = "IDLE"
+        # Rotation speed (degrees per second)
+        self.angular_speed: float = 90.0
         # path following attributes
         self.path: List[Tuple[float, float]] = []
         self.path_index: int = 0
@@ -41,7 +48,47 @@ class Robot:
         self.final_theta = theta
         self.nav_status = "PLANNING"
 
-    def update(self):
+    def start_action(self, action: str, params: Dict[str, Any]):
+        """
+        Initiate an animated action: 'rotate' or 'move_forward'.
+        """
+        self.current_action = action
+        self.action_params = params
+        # Determine action duration
+        if action == "rotate":
+            angle = params.get("angle", 0.0)
+            self.action_time_left = abs(angle) / self.angular_speed
+        elif action == "move_forward":
+            # duration provided directly
+            self.action_time_left = params.get("duration", 0.0)
+        else:
+            self.action_time_left = 0.0
+        self.action_status = "IN_PROGRESS"
+
+    def update(self, dt: float):
+        # Handle ongoing action first
+        if self.current_action and self.action_status == "IN_PROGRESS":
+            if self.current_action == "rotate":
+                target_angle = (self.theta + self.action_params.get("angle", 0)) % 360
+                # rotate step
+                delta = self.angular_speed * dt
+                # Compute minimal circular difference
+                diff = (target_angle - self.theta + 540) % 360 - 180
+                step = min(delta, abs(diff))
+                self.theta = (self.theta + step * (1 if diff >= 0 else -1)) % 360
+            elif self.current_action == "move_forward":
+                # move step
+                distance = self.speed * dt
+                rad = math.radians(self.theta)
+                self.x += math.cos(rad) * distance
+                self.y -= math.sin(rad) * distance
+            # decrement timer
+            self.action_time_left -= dt
+            if self.action_time_left <= 0:
+                # Action completed
+                self.action_status = "SUCCEEDED"
+                self.current_action = None
+            return
         # Follow computed path waypoints
         if not self.path or self.nav_status == "SUCCEEDED":
             return
@@ -288,7 +335,7 @@ class Simulation:
 
     def update(self, dt: float):
         prev_x, prev_y, prev_theta = self.robot.x, self.robot.y, self.robot.theta
-        self.robot.update()
+        self.robot.update(dt)
         # Detect collision with any obstacle and revert if needed
         for obs in self.env.obstacles:
             if circle_rect_collision(

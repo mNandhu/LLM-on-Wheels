@@ -7,9 +7,10 @@ from ..llm.coord_detection import detect_coords
 from ..llm.memory_querying import extract_label
 from ..utils.audio import record_audio
 from ..llm.final_response import generate_final_response
+from ..llm.action_execution import extract_action_params
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from ..config.constants import USER_INTENTS
-
+import time
 
 class Nodes:
     def __init__(self):
@@ -174,9 +175,16 @@ class Nodes:
                 )
             )
 
+            timeout = 60  # Timeout in seconds
+            start_time = time.time()
             while state["navigation_status"] == "IN_PROGRESS":
                 # Poll for navigation status until completed
                 state["navigation_status"] = interfaces.get_nav_status()
+                if time.time() - start_time > timeout:
+                    print(f"{Colors.RED}[navigation_node] Navigation timed out.{Colors.ENDC}")
+                    state["navigation_status"] = "TIMEOUT"
+                    break
+                time.sleep(0.1)  # Add a short delay to avoid resource exhaustion
             print(
                 f"{Colors.BLUE}[navigation_node] Navigation status: {state.get('navigation_status')}{Colors.ENDC}"
             )
@@ -193,17 +201,22 @@ class Nodes:
         return state
 
     def action_execution_node(self, state: State) -> State:
-        # Stub: Execute a direct robot action.
-        state["action_status"] = interfaces.execute_robot_action(
-            "rotate", {"angle": 90}
-        )
+        # Extract desired action and parameters from user input
+        user_input = state.get("user_input_text", "")
+        history = state.get("chat_history", [])
+        params = extract_action_params(user_input, history, self.chat_llm)
+        action = params.get("action")
+        # Execute the action via interfaces
+        state["action_status"] = interfaces.execute_robot_action(action, params)
         print(
-            f"{Colors.BLUE}[action_execution_node] Action status: {state.get('action_status')}{Colors.ENDC}"
+            f"{Colors.BLUE}[action_execution_node] Executed action: {action} with params: {params}, status: {state.get('action_status')}{Colors.ENDC}"
         )
         # Log to history
         state["chat_history"].append(
             SystemMessage(
-                content=f"Action 'rotate' executed with status: {state.get('action_status')}"
+                content=(
+                    f"Action '{action}' executed with params {params} -> status: {state.get('action_status')}"
+                )
             )
         )
         return state
