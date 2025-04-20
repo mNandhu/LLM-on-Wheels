@@ -9,8 +9,10 @@ def main():
         user_input = record_audio()
         excracted_entities = {}
         result = wf.invoke(user_input, excracted_entities, debugMode=False)
-        print("\n\nAI>", end=" ")
-        print(result["messages"][-1].content)
+        resp = result.get("llm_response_text") or result.get(
+                    "final_response_text"
+                )
+        print(f"\nAI> {resp}")
 
 
 if __name__ == "__main__":

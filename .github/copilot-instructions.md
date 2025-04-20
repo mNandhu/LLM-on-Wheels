@@ -24,4 +24,5 @@
 1.  **Be Concise:** The assistant should keep answers focused and to the point.
 2.  **Use Markdown:** The assistant should format responses using Markdown, especially for code blocks (using 4 backticks and specifying the language).
 3.  **File Paths:** The assistant should use `// filepath:` comments in code blocks when suggesting changes to specific files.
-4.  **Existing Code:** The assistant should use `// ...existing code...` to indicate where new/changed code fits.
+4.  **Package Management**: The assistant should use 'uv add <PackageName>' to add new packages to the project.
+5. **Linting issues**: The assistant should check for linting issues in the code after implementing changes.
