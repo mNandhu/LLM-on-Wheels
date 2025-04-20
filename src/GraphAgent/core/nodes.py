@@ -9,8 +9,9 @@ from ..utils.audio import record_audio
 from ..llm.final_response import generate_final_response
 from ..llm.action_execution import extract_action_params
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-from ..config.constants import USER_INTENTS
+from ..config.constants import USER_INTENTS, USE_AUDIO_INPUT, USE_AUDIO_OUTPUT
 import time
+
 
 class Nodes:
     def __init__(self):
@@ -28,13 +29,15 @@ class Nodes:
 
         Updates "user_input_text" and "current_robot_pose" in the state.
         """
-        # Stub: Simulate capturing user speech (or text) and updating pose history.
-        state["user_input_text"] = interfaces.transcribe_audio(
-            state.get(
-                "user_input_audio",
-                record_audio(duration=3),  # Record audio if not provided
+        if USE_AUDIO_INPUT.lower() == "true":
+            state["user_input_text"] = interfaces.transcribe_audio(
+                state.get(
+                    "user_input_audio",
+                    record_audio(duration=3),  # Record audio if not provided
+                )
             )
-        )
+        else:
+            state["user_input_text"] = input("Enter Command >")
         # Update current pose as gathered from robot sensors.
         state["current_robot_pose"] = interfaces.get_current_pose()
         print(
@@ -181,7 +184,9 @@ class Nodes:
                 # Poll for navigation status until completed
                 state["navigation_status"] = interfaces.get_nav_status()
                 if time.time() - start_time > timeout:
-                    print(f"{Colors.RED}[navigation_node] Navigation timed out.{Colors.ENDC}")
+                    print(
+                        f"{Colors.RED}[navigation_node] Navigation timed out.{Colors.ENDC}"
+                    )
                     state["navigation_status"] = "TIMEOUT"
                     break
                 time.sleep(0.1)  # Add a short delay to avoid resource exhaustion
@@ -233,15 +238,23 @@ class Nodes:
         return state
 
     def text_to_speech_node(self, state: State) -> State:
-        # Convert the final response text to speech.
+        # Convert the final response text to speech if audio output is enabled
         state["final_response_text"] = state.get("llm_response_text") or "No response."
-        # Synthesize speech and get audio file path
-        audio_file = interfaces.synthesize_speech(state["final_response_text"])
-        state["final_response_audio"] = audio_file
-        # Log audio file location and response text
-        print(
-            f"{Colors.BLUE}[text_to_speech_node] Generated audio file: {audio_file}{Colors.ENDC}"
-        )
+
+        # Only synthesize speech if USE_AUDIO_OUTPUT is true
+        if USE_AUDIO_OUTPUT.lower() == "true":
+            # Synthesize speech and get audio file path
+            audio_file = interfaces.synthesize_speech(state["final_response_text"])
+            state["final_response_audio"] = audio_file
+            print(
+                f"{Colors.BLUE}[text_to_speech_node] Generated audio file: {audio_file}{Colors.ENDC}"
+            )
+        else:
+            state["final_response_audio"] = None
+            print(
+                f"{Colors.BLUE}[text_to_speech_node] Audio output disabled, skipping speech synthesis{Colors.ENDC}"
+            )
+
         print(
             f"{Colors.BLUE}[text_to_speech_node] Final response text: {state.get('final_response_text')}{Colors.ENDC}"
         )

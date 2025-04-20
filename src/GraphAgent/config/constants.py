@@ -1,3 +1,9 @@
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
+
 LLM_MODEL = "llama-3.3-70b-versatile"
 
 LLM_MAX_RETRIES = 2  # Maximum number of retries for LLM operations
@@ -23,3 +29,10 @@ USER_INTENTS = {
     "CONFIRMATION": "Confirm a previous action or request.",
     # "NAVIGATE_TO_NAME": "Navigate to a location known by name."
 }
+
+USE_AUDIO_INPUT = os.getenv(
+    "USE_AUDIO_INPUT", "true"
+)  # Use audio input for user commands
+USE_AUDIO_OUTPUT = os.getenv(
+    "USE_AUDIO_OUTPUT", "true"
+)  # Use audio output for responses

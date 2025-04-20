@@ -27,7 +27,8 @@ def synthesize_speech(text: str) -> str:
     # Generate speech audio via ElevenLabs
     audio_file = synthesize_audio_with_elevenlabs(text)
     # Play the generated audio
-    play_audio(audio_file)
+    if audio_file:
+        play_audio(audio_file)
     return audio_file
 
 

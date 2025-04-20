@@ -74,7 +74,8 @@ def synthesize_audio_with_elevenlabs(
 
     api_key = os.getenv("ELEVENLABS_API_KEY")
     if not api_key:
-        raise RuntimeError("ELEVENLABS_API_KEY not set in environment")
+        print("Error: ELEVENLABS_API_KEY not set in environment")
+        return ""
     client = ElevenLabs(api_key=api_key)
     # The convert() method returns a generator yielding byte chunks
     audio_stream = client.text_to_speech.convert(
