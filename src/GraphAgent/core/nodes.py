@@ -5,7 +5,7 @@ from . import interfaces
 from ..llm.intent_detection import classify_intent
 from ..llm.coord_detection import detect_coords
 from ..llm.memory_querying import extract_label
-
+from ..utils.audio import record_audio
 
 class Nodes:
     def __init__(self):
@@ -27,7 +27,7 @@ class Nodes:
         state["user_input_text"] = interfaces.transcribe_audio(
             state.get(
                 "user_input_audio",
-                "data/audio/goto_20_40_75.wav",
+            record_audio(duration=3)  # Record audio if not provided
             )
         )
         # Update current pose as gathered from robot sensors.
