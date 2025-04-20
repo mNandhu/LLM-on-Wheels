@@ -22,7 +22,7 @@ def generate_final_response(state: Any, llm=None) -> str:
         "requires_clarification": state.get("requires_clarification"),
         "error_message": state.get("error_message"),
         "user_input_text": state.get("user_input_text"),
-        "current_robot_pose": state.get("current_robot_pose")
+        "current_robot_pose": state.get("current_robot_pose"),
     }
     # Invoke the LLM with structured parsing for reliability
     schema = [ResponseSchema(name="response", description="User-facing response text")]

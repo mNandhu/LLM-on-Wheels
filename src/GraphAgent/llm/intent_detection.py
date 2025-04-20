@@ -17,7 +17,10 @@ def classify_intent(user_input: str, history: list, llm) -> str:
         str: The classified intent as one of the predefined USER_INTENTS.
     """
     numbered_intents = "\n".join(
-        [f"{i}. {intent} : {USER_INTENTS[intent]}" for i, intent in enumerate(USER_INTENTS, 1)]
+        [
+            f"{i}. {intent} : {USER_INTENTS[intent]}"
+            for i, intent in enumerate(USER_INTENTS, 1)
+        ]
     )
 
     schema = [

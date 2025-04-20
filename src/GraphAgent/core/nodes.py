@@ -10,6 +10,7 @@ from ..llm.final_response import generate_final_response
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from ..config.constants import USER_INTENTS
 
+
 class Nodes:
     def __init__(self):
         self._chat_llm = None
@@ -62,7 +63,9 @@ class Nodes:
         state["current_intent"] = intent
 
         state["chat_history"].append(
-            SystemMessage(content=f"Detected intent: {intent}:\"{USER_INTENTS[intent]}\" in query: {user_input}")
+            SystemMessage(
+                content=f'Detected intent: {intent}:"{USER_INTENTS[intent]}" in query: {user_input}'
+            )
         )
 
         print(
@@ -169,9 +172,8 @@ class Nodes:
                 SystemMessage(
                     content=f"Navigation command sent to robot with target: {state.get('navigation_target')} - IN_PROGRESS"
                 )
-                )
+            )
 
-            # FIXME: This blocks execution, because the simulation is running in the same thread.
             while state["navigation_status"] == "IN_PROGRESS":
                 # Poll for navigation status until completed
                 state["navigation_status"] = interfaces.get_nav_status()
