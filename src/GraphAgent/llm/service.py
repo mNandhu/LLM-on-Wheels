@@ -2,7 +2,7 @@ from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 import os
 from typing import List, Dict, Any, Optional
-from GraphAgent.config.constants import LLM_MAX_RETRIES, LLM_MODEL
+from ..config.constants import LLM_MAX_RETRIES, LLM_MODEL
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.output_parsers import StructuredOutputParser, ResponseSchema
 

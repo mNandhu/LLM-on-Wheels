@@ -1,4 +1,4 @@
-from GraphAgent.config.prompts import PROMPT_COORD_DETECTION_WITH_HISTORY
+from ..config.prompts import PROMPT_COORD_DETECTION_WITH_HISTORY
 from .service import invoke_with_retries
 from langchain.output_parsers import ResponseSchema
 
@@ -38,8 +38,8 @@ def detect_coords(user_input: str, history: list, llm) -> dict:
 
 
 if __name__ == "__main__":
-    from GraphAgent.llm.service import get_chat_llm
-    from GraphAgent.utils.misc import Colors
+    from src.GraphAgent.llm.service import get_chat_llm
+    from src.GraphAgent.utils.misc import Colors
 
     # Example driver code to test detect_coords with sample inputs
 

@@ -1,5 +1,5 @@
 from .core.graph import WorkFlow
-from GraphAgent.utils.audio import record_audio
+from src.GraphAgent.utils.audio import record_audio
 
 
 def main():

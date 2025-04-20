@@ -1,5 +1,5 @@
-from GraphAgent.config.constants import USER_INTENTS
-from GraphAgent.config.prompts import PROMPT_INTENT_DETECTION_WITH_HISTORY
+from ..config.constants import USER_INTENTS
+from ..config.prompts import PROMPT_INTENT_DETECTION_WITH_HISTORY
 from .service import invoke_with_retries
 from langchain.output_parsers import ResponseSchema
 
@@ -42,8 +42,8 @@ def classify_intent(user_input: str, history: list, llm) -> str:
 
 
 if __name__ == "__main__":
-    from GraphAgent.llm.service import get_chat_llm
-    from GraphAgent.utils.misc import Colors
+    from src.GraphAgent.llm.service import get_chat_llm
+    from src.GraphAgent.utils.misc import Colors
 
     # Example driver code to test classify_intent with sample inputs
 

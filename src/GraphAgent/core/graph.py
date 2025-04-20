@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from .state import State
 from .nodes import Nodes
-from GraphAgent.config.prompts import SYSTEM_PROMPT
+from ..config.prompts import SYSTEM_PROMPT
 
 
 class WorkFlow:

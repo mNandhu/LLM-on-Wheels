@@ -1,9 +1,9 @@
 from .state import State
-from GraphAgent.utils.misc import Colors
-from GraphAgent.llm.service import get_chat_llm
+from ..utils.misc import Colors
+from ..llm.service import get_chat_llm
 from . import interfaces
-from GraphAgent.llm.intent_detection import classify_intent
-from GraphAgent.llm.coord_detection import detect_coords
+from ..llm.intent_detection import classify_intent
+from ..llm.coord_detection import detect_coords
 
 
 class Nodes:
