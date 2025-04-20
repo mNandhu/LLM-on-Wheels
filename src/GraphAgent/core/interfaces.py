@@ -6,6 +6,8 @@ from ..utils.audio import (
     synthesize_audio_with_elevenlabs,
 )
 
+import src.Simulator.simulation_api as sim  # type: ignore
+
 
 """Interfaces for Audio Processing"""
 
@@ -33,8 +35,8 @@ def synthesize_speech(text: str) -> str:
 
 
 def get_current_pose() -> Tuple[float, float, float]:
-    # Placeholder: Return current robot pose as (x, y, theta).
-    return (0.0, 0.0, 0.0)
+    # Delegate to simulation API for pose
+    return sim.get_current_pose_from_sim()
 
 
 def query_memory(entity_type: str, criteria: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -43,18 +45,18 @@ def query_memory(entity_type: str, criteria: Dict[str, Any]) -> List[Dict[str, A
 
 
 def send_nav_goal(x: float, y: float, theta: float) -> None:
-    # Placeholder: Send navigation goal to the robot.
-    print(f"Navigation goal sent: x={x}, y={y}, theta={theta}")
+    # Delegate to simulation API for navigation goal
+    sim.send_nav_goal_to_sim(x, y, theta)
 
 
 def get_nav_status() -> str:
-    # Placeholder: Return the current status of the navigation.
-    return "success"
+    # Delegate to simulation API for navigation status
+    return sim.get_nav_status_from_sim()
 
 
 def execute_robot_action(action: str, params: Dict[str, Any]) -> str:
-    # Placeholder: Execute a direct robot action and return a status string.
-    return f"Action {action} executed with params {params}"
+    # Delegate to simulation API for direct robot actions
+    return sim.execute_robot_action_in_sim(action, params)
 
 
 if __name__ == "__main__":

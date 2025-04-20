@@ -11,6 +11,7 @@ dependencies = [
     "langchain-core>=0.3.54",
     "langchain-groq>=0.3.2",
     "langgraph~=0.2.26",
+    "pygame>=2.6.1",
     "python-dotenv>=1.1.0",
     "sounddevice>=0.5.1",
     "soundfile>=0.13.1",
